@@ -4,12 +4,14 @@ import tkinter as tk
 import keyboard
 import win32gui
 import sys
+import yaml
 
 from datetime import datetime
 from PIL import ImageTk, ImageGrab, Image
 from pystray import Icon as icon, Menu as menu, MenuItem as item
 from win32gui import GetForegroundWindow
 from win32api import GetSystemMetrics
+
 WIDTH, HEIGHT = GetSystemMetrics(0), GetSystemMetrics(1)
 
 
@@ -94,10 +96,15 @@ class PyStrayWorker:
 
 
 def get_save_path():
+    config = load_config()
+    directory_path = config.get("directory_path")
     current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     desktop_path = os.path.join(os.path.join(os.environ['USERPROFILE']), 'Desktop')
     filename = f"screenshot_{current_time}.png"
-    save_path = os.path.join(desktop_path, filename)
+    if directory_path == 'desktop':
+        save_path = os.path.join(desktop_path, filename)
+    else:
+        save_path = os.path.join(directory_path, filename)
     return save_path
 
 
@@ -120,13 +127,20 @@ def on_foreground_window():
     ScreenTaker().take_screenshot(window_coords)
 
 
+def load_config():
+    with open("config.yaml", 'r') as f:
+        config = yaml.safe_load(f)
+    return config
+
+
 def main():
-    print("Hotkey 'Ctrl+F12' set to take a screenshot with area selecting tool")
-    print("Hotkey 'Ctrl+F11' set to take a screenshot of full screen")
-    print("Hotkey 'Ctrl+F10' set to take a screenshot of foreground window")
-    keyboard.add_hotkey('ctrl+f12', on_selecting_area)
-    keyboard.add_hotkey('ctrl+f11', on_fullscreen)
-    keyboard.add_hotkey('ctrl+f10', on_foreground_window)
+    config = load_config()
+    fullscreen_hotkey = config.get("fullscreen_hotkey")
+    selecting_area_hotkey = config.get("selecting_area_hotkey")
+    foreground_screen_hotkey = config.get("foreground_screen_hotkey")
+    keyboard.add_hotkey(selecting_area_hotkey, on_selecting_area)
+    keyboard.add_hotkey(fullscreen_hotkey, on_fullscreen)
+    keyboard.add_hotkey(foreground_screen_hotkey, on_foreground_window)
     PyStrayWorker()
 
 
