@@ -1,3 +1,4 @@
+import asyncio
 import os
 import tkinter as tk
 import keyboard
@@ -7,12 +8,23 @@ from datetime import datetime
 from PIL import ImageTk, ImageGrab, Image
 from pystray import Icon as icon, Menu as menu, MenuItem as item
 from win32gui import GetForegroundWindow
-
-WIDTH, HEIGHT = 1920, 1080
+from win32api import GetSystemMetrics
+WIDTH, HEIGHT = GetSystemMetrics(0), GetSystemMetrics(1)
 
 
 class ScreenTaker:
     def __init__(self):
+        self.rect_id = None
+        self.canvas = None
+        self.boty = None
+        self.botx = None
+        self.topy = None
+        self.topx = None
+        self.img = None
+        self.window = None
+        self.screenshot = None
+
+    async def take_with_selecting_area(self):
         self.screenshot = ImageGrab.grab()
         self.window = tk.Tk()
         self.window.attributes('-fullscreen', True)
@@ -24,8 +36,6 @@ class ScreenTaker:
         self.canvas = tk.Canvas()
         self.topx, self.topy, self.botx, self.boty = 0, 0, 0, 0
         self.rect_id = None
-
-    def take_with_area(self):
         self.canvas = tk.Canvas(self.window, width=self.img.width(), height=self.img.height(),
                                 borderwidth=0, highlightthickness=0)
         self.canvas.pack(expand=True)
@@ -34,18 +44,19 @@ class ScreenTaker:
         self.rect_id = self.canvas.create_rectangle(self.topx, self.topy, self.topx, self.topy, dash=(2, 2), fill='',
                                                     outline='white')
         self.canvas.bind('<Button-1>', self.get_mouse_position)
-        self.canvas.bind('<B1-Motion>', self.update_selected_rectangle)
+        self.canvas.bind('<B1-Motion>', self.update_selected_area)
         self.canvas.bind('<ButtonRelease-1>', self.release_and_save)
+        self.screenshot.close()
         self.window.mainloop()
 
     def get_mouse_position(self, event):
         self.topx, self.topy = event.x, event.y
 
-    def update_selected_rectangle(self, event):
+    def update_selected_area(self, event):
         self.botx, self.boty = event.x, event.y
         self.canvas.coords(self.rect_id, self.topx, self.topy, self.botx, self.boty)
 
-    def convert_coords(self):
+    def get_converted_current_coords(self):
         left = min(self.topx, self.botx)
         top = min(self.topy, self.boty)
         right = max(self.topx, self.botx)
@@ -54,25 +65,26 @@ class ScreenTaker:
 
     def release_and_save(self, event):
         self.window.destroy()
-        self.take_by_coords(self.convert_coords())
+        self.take_screenshot()
 
-    def take_by_coords(self, coords):
-        self.screenshot = ImageGrab.grab(bbox=coords)
-        self.screenshot.save(get_save_path())
-        self.screenshot.close()
-
-    def take_fullscreen(self):
-        self.screenshot.save(get_save_path())
-        self.screenshot.close()
+    def take_screenshot(self, coords=None):
+        if self.img is None:
+            if coords is None:
+                screenshot = ImageGrab.grab()
+            else:
+                screenshot = ImageGrab.grab(coords)
+        else:
+            screenshot = ImageGrab.grab(self.get_converted_current_coords())
+        screenshot.save(get_save_path())
+        screenshot.close()
 
 
 class PyStrayWorker:
     def __init__(self):
         self.icon = icon('test', Image.open("icon.png"), menu=menu(
-            item(text="Left-Click-Action", action=on_selecting_area, default=True),
-            item(
-                'Exit',
-                self.end_program))).run()
+            item(text="Full Screen", action=on_fullscreen, default=True),
+            item(text="Select Area", action=on_selecting_area),
+            item('Exit', action=self.end_program))).run()
 
     def end_program(self):
         self.icon.stop()
@@ -88,21 +100,22 @@ def get_save_path():
 
 
 def on_selecting_area():
-    ScreenTaker().take_with_area()
+    asyncio.run(ScreenTaker().take_with_selecting_area())
 
 
 def on_fullscreen():
-    ScreenTaker().take_fullscreen()
+    ScreenTaker().take_screenshot()
 
 
 def on_foreground_window():
     window_coords = list(win32gui.GetWindowRect(GetForegroundWindow()))
-    print(window_coords)
     window_coords[0] = window_coords[0] + 8
-    window_coords[2] = window_coords[2] - 8
+    if window_coords[2] - 8 >= 0:
+        window_coords[2] = window_coords[2] - 8
     window_coords[1] = window_coords[1] + 8
-    window_coords[3] = window_coords[3] - 10
-    ScreenTaker().take_by_coords(window_coords)
+    if window_coords[3] - 10 >= 0:
+        window_coords[3] = window_coords[3] - 10
+    ScreenTaker().take_screenshot(window_coords)
 
 
 def main():
