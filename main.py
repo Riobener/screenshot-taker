@@ -60,6 +60,7 @@ class ScreenTaker():
         screenshot.save(save_path)
 
 
+
 def on_hotkey():
     taker = ScreenTaker()
     taker.window_logic()
