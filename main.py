@@ -3,6 +3,7 @@ import os
 import tkinter as tk
 import keyboard
 import win32gui
+import sys
 
 from datetime import datetime
 from PIL import ImageTk, ImageGrab, Image
@@ -88,7 +89,7 @@ class PyStrayWorker:
 
     def end_program(self):
         self.icon.stop()
-        exit(1)
+        sys.exit()
 
 
 def get_save_path():
