@@ -82,10 +82,11 @@ class ScreenTaker:
 
 class PyStrayWorker:
     def __init__(self):
-        self.icon = icon('test', Image.open("icon.png"), menu=menu(
+        self.icon = icon('test', Image.open("assets/icon.png"), menu=menu(
             item(text="Full Screen", action=on_fullscreen, default=True),
             item(text="Select Area", action=on_selecting_area),
-            item('Exit', action=self.end_program))).run()
+            item('Exit', action=self.end_program)))
+        self.icon.run()
 
     def end_program(self):
         self.icon.stop()
