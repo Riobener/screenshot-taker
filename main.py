@@ -1,4 +1,3 @@
-import asyncio
 import os
 import tkinter as tk
 import keyboard
@@ -27,7 +26,7 @@ class ScreenTaker:
         self.window = None
         self.screenshot = None
 
-    async def take_with_selecting_area(self):
+    def take_with_selecting_area(self):
         self.screenshot = ImageGrab.grab()
         self.window = tk.Tk()
         self.window.attributes('-fullscreen', True)
@@ -45,7 +44,7 @@ class ScreenTaker:
         self.canvas.img = self.img
         self.canvas.create_image(0, 0, image=self.img, anchor=tk.NW)
         self.rect_id = self.canvas.create_rectangle(self.topx, self.topy, self.topx, self.topy, dash=(2, 2), fill='',
-                                                    outline='white')
+                                                    outline='red')
         self.canvas.bind('<Button-1>', self.get_mouse_position)
         self.canvas.bind('<B1-Motion>', self.update_selected_area)
         self.canvas.bind('<ButtonRelease-1>', self.release_and_save)
@@ -64,11 +63,11 @@ class ScreenTaker:
         top = min(self.topy, self.boty)
         right = max(self.topx, self.botx)
         bottom = max(self.topy, self.boty)
-        return [left, top, right, bottom]
+        return [left + 1, top + 1, right, bottom]
 
     def release_and_save(self, event):
-        self.window.destroy()
         self.take_screenshot()
+        self.window.destroy()
 
     def take_screenshot(self, coords=None):
         if self.img is None:
@@ -100,7 +99,7 @@ def get_save_path():
     directory_path = config.get("directory_path")
     current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     desktop_path = os.path.join(os.path.join(os.environ['USERPROFILE']), 'Desktop')
-    filename = f"screenshot_{current_time}.png"
+    filename = f"Screenshot_{current_time}.png"
     if directory_path == 'desktop':
         save_path = os.path.join(desktop_path, filename)
     else:
@@ -109,7 +108,7 @@ def get_save_path():
 
 
 def on_selecting_area():
-    asyncio.run(ScreenTaker().take_with_selecting_area())
+    ScreenTaker().take_with_selecting_area()
 
 
 def on_fullscreen():
