@@ -1,8 +1,5 @@
 import os
 import tkinter as tk
-from ctypes import windll
-from io import BytesIO
-
 import win32clipboard
 import keyboard
 import win32con
@@ -15,12 +12,15 @@ from PIL import ImageTk, ImageGrab, Image
 from pystray import Icon as icon, Menu as menu, MenuItem as item
 from win32gui import GetForegroundWindow
 from win32api import GetSystemMetrics
+from ctypes import windll
+from io import BytesIO
 
 WIDTH, HEIGHT = GetSystemMetrics(0), GetSystemMetrics(1)
 
 GWL_EXSTYLE = -20
 WS_EX_APPWINDOW = 0x00040000
 WS_EX_TOOLWINDOW = 0x00000080
+
 
 class ScreenTaker:
     def __init__(self):
@@ -72,7 +72,8 @@ class ScreenTaker:
         self.canvas.bind('<Button-1>', self.get_mouse_position)
         self.canvas.bind('<B1-Motion>', self.update_selected_area)
         self.canvas.bind('<ButtonRelease-1>', self.release_and_crop)
-        windll.user32.SetWindowPos(self.window.winfo_id(), -1, self.window.winfo_x(), self.window.winfo_y(), 0, 0, 0x0001)
+        windll.user32.SetWindowPos(self.window.winfo_id(), -1, self.window.winfo_x(), self.window.winfo_y(), 0, 0,
+                                   0x0001)
         self.window.mainloop()
 
     def get_mouse_position(self, event):
@@ -113,7 +114,6 @@ class ScreenTaker:
         style = style & ~WS_EX_TOOLWINDOW
         style = style | WS_EX_APPWINDOW
         windll.user32.SetWindowLongPtrW(hwnd, GWL_EXSTYLE, style)
-        # re-assert the new window style
         root.withdraw()
         root.after(10, root.deiconify)
 
@@ -168,28 +168,6 @@ def load_config():
         config = yaml.safe_load(f)
     return config
 
-
-# Other method for keyboard
-# HOTKEYS = [
-#     {"keys": (win32con.VK_F12, win32con.MOD_CONTROL), "command": on_selecting_area},
-#     {"keys": (win32con.VK_F11, win32con.MOD_CONTROL), "command": on_fullscreen},
-#     {"keys": (win32con.VK_F10, win32con.MOD_CONTROL), "command": on_foreground_window},
-# ]
-# for i, h in enumerate(HOTKEYS):
-#     vk, modifiers = h["keys"]
-#     print("Registering id", i, "for key", vk)
-#     if not ctypes.windll.user32.RegisterHotKey(None, i, modifiers, vk):
-#         print("Unable to register id", i)
-# try:
-#     msg = wintypes.MSG()
-#     while ctypes.windll.user32.GetMessageA(ctypes.byref(msg), None, 0, 0) != 0:
-#         if msg.message == win32con.WM_HOTKEY:
-#             HOTKEYS[msg.wParam]["command"]()
-#         ctypes.windll.user32.TranslateMessage(ctypes.byref(msg))
-#         ctypes.windll.user32.DispatchMessageA(ctypes.byref(msg))
-# finally:
-#     for i, h in enumerate(HOTKEYS):
-#         ctypes.windll.user32.UnregisterHotKey(None, i)
 
 def main():
     config = load_config()
