@@ -1,5 +1,6 @@
 import os
 import tkinter as tk
+from ctypes import windll
 from io import BytesIO
 
 import win32clipboard
@@ -17,6 +18,9 @@ from win32api import GetSystemMetrics
 
 WIDTH, HEIGHT = GetSystemMetrics(0), GetSystemMetrics(1)
 
+GWL_EXSTYLE = -20
+WS_EX_APPWINDOW = 0x00040000
+WS_EX_TOOLWINDOW = 0x00000080
 
 class ScreenTaker:
     def __init__(self):
@@ -51,7 +55,7 @@ class ScreenTaker:
         self.window.focus_set()
         self.window.focus_force()
         self.window.overrideredirect(True)
-        self.window.wm_attributes("-topmost", 1)
+        self.window.after(10, self.set_appwindow, self.window)
         win32gui.SetWindowPos(self.window.winfo_id(), win32con.HWND_TOPMOST, 0, 0, 0, 0,
                               win32con.SWP_NOMOVE | win32con.SWP_NOSIZE)
         self.img = ImageTk.PhotoImage(self.screenshot)
@@ -68,6 +72,7 @@ class ScreenTaker:
         self.canvas.bind('<Button-1>', self.get_mouse_position)
         self.canvas.bind('<B1-Motion>', self.update_selected_area)
         self.canvas.bind('<ButtonRelease-1>', self.release_and_crop)
+        windll.user32.SetWindowPos(self.window.winfo_id(), -1, self.window.winfo_x(), self.window.winfo_y(), 0, 0, 0x0001)
         self.window.mainloop()
 
     def get_mouse_position(self, event):
@@ -101,6 +106,16 @@ class ScreenTaker:
         win32clipboard.EmptyClipboard()
         win32clipboard.SetClipboardData(win32clipboard.CF_DIB, data)
         win32clipboard.CloseClipboard()
+
+    def set_appwindow(self, root):
+        hwnd = windll.user32.GetParent(root.winfo_id())
+        style = windll.user32.GetWindowLongPtrW(hwnd, GWL_EXSTYLE)
+        style = style & ~WS_EX_TOOLWINDOW
+        style = style | WS_EX_APPWINDOW
+        windll.user32.SetWindowLongPtrW(hwnd, GWL_EXSTYLE, style)
+        # re-assert the new window style
+        root.withdraw()
+        root.after(10, root.deiconify)
 
 
 class PyStrayWorker:
