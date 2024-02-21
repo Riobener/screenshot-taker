@@ -1,6 +1,10 @@
 import os
 import tkinter as tk
+from io import BytesIO
+
+import win32clipboard
 import keyboard
+import win32con
 import win32gui
 import sys
 import yaml
@@ -26,14 +30,30 @@ class ScreenTaker:
         self.window = None
         self.screenshot = None
 
-    def take_with_selecting_area(self):
+    def take_screenshot(self, coords=None):
         self.screenshot = ImageGrab.grab()
+        if coords is not None:
+            self.screenshot = self.screenshot.crop(coords)
+        return self
+
+    def save(self):
+        self.screenshot.save(get_save_path())
+        self.send_to_clipboard()
+        self.screenshot.close()
+
+    def save_with_selecting_area(self):
         self.window = tk.Tk()
         self.window.attributes('-fullscreen', True)
         self.window.attributes('-topmost', True)
+        self.window.wm_attributes("-topmost", 1)
+        self.window.after(0, lambda: self.window.lift())
         self.window.resizable(False, False)
-        self.window.title("Select Area")
-        self.window.configure(background='grey')
+        self.window.focus_set()
+        self.window.focus_force()
+        self.window.overrideredirect(True)
+        self.window.wm_attributes("-topmost", 1)
+        win32gui.SetWindowPos(self.window.winfo_id(), win32con.HWND_TOPMOST, 0, 0, 0, 0,
+                              win32con.SWP_NOMOVE | win32con.SWP_NOSIZE)
         self.img = ImageTk.PhotoImage(self.screenshot)
         self.canvas = tk.Canvas()
         self.topx, self.topy, self.botx, self.boty = 0, 0, 0, 0
@@ -47,8 +67,7 @@ class ScreenTaker:
                                                     outline='red')
         self.canvas.bind('<Button-1>', self.get_mouse_position)
         self.canvas.bind('<B1-Motion>', self.update_selected_area)
-        self.canvas.bind('<ButtonRelease-1>', self.release_and_save)
-        self.screenshot.close()
+        self.canvas.bind('<ButtonRelease-1>', self.release_and_crop)
         self.window.mainloop()
 
     def get_mouse_position(self, event):
@@ -65,20 +84,23 @@ class ScreenTaker:
         bottom = max(self.topy, self.boty)
         return [left + 1, top + 1, right, bottom]
 
-    def release_and_save(self, event):
-        self.take_screenshot()
+    def release_and_crop(self, event):
+        self.crop_selected_image()
         self.window.destroy()
 
-    def take_screenshot(self, coords=None):
-        if self.img is None:
-            if coords is None:
-                screenshot = ImageGrab.grab()
-            else:
-                screenshot = ImageGrab.grab(coords)
-        else:
-            screenshot = ImageGrab.grab(self.get_converted_current_coords())
-        screenshot.save(get_save_path())
-        screenshot.close()
+    def crop_selected_image(self):
+        self.screenshot = self.screenshot.crop(self.get_converted_current_coords())
+        self.save()
+
+    def send_to_clipboard(self):
+        output = BytesIO()
+        self.screenshot.convert("RGB").save(output, "BMP")
+        data = output.getvalue()[14:]
+        output.close()
+        win32clipboard.OpenClipboard()
+        win32clipboard.EmptyClipboard()
+        win32clipboard.SetClipboardData(win32clipboard.CF_DIB, data)
+        win32clipboard.CloseClipboard()
 
 
 class PyStrayWorker:
@@ -108,11 +130,11 @@ def get_save_path():
 
 
 def on_selecting_area():
-    ScreenTaker().take_with_selecting_area()
+    ScreenTaker().take_screenshot().save_with_selecting_area()
 
 
 def on_fullscreen():
-    ScreenTaker().take_screenshot()
+    ScreenTaker().take_screenshot().save()
 
 
 def on_foreground_window():
@@ -123,7 +145,7 @@ def on_foreground_window():
     window_coords[1] = window_coords[1] + 8
     if window_coords[3] - 10 >= 0:
         window_coords[3] = window_coords[3] - 10
-    ScreenTaker().take_screenshot(window_coords)
+    ScreenTaker().take_screenshot(window_coords).save()
 
 
 def load_config():
@@ -131,6 +153,28 @@ def load_config():
         config = yaml.safe_load(f)
     return config
 
+
+# Other method for keyboard
+# HOTKEYS = [
+#     {"keys": (win32con.VK_F12, win32con.MOD_CONTROL), "command": on_selecting_area},
+#     {"keys": (win32con.VK_F11, win32con.MOD_CONTROL), "command": on_fullscreen},
+#     {"keys": (win32con.VK_F10, win32con.MOD_CONTROL), "command": on_foreground_window},
+# ]
+# for i, h in enumerate(HOTKEYS):
+#     vk, modifiers = h["keys"]
+#     print("Registering id", i, "for key", vk)
+#     if not ctypes.windll.user32.RegisterHotKey(None, i, modifiers, vk):
+#         print("Unable to register id", i)
+# try:
+#     msg = wintypes.MSG()
+#     while ctypes.windll.user32.GetMessageA(ctypes.byref(msg), None, 0, 0) != 0:
+#         if msg.message == win32con.WM_HOTKEY:
+#             HOTKEYS[msg.wParam]["command"]()
+#         ctypes.windll.user32.TranslateMessage(ctypes.byref(msg))
+#         ctypes.windll.user32.DispatchMessageA(ctypes.byref(msg))
+# finally:
+#     for i, h in enumerate(HOTKEYS):
+#         ctypes.windll.user32.UnregisterHotKey(None, i)
 
 def main():
     config = load_config()
