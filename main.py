@@ -1,7 +1,8 @@
 import asyncio
+import os
+
 import win32con
 import win32gui
-import sys
 from PIL import Image
 from pystray import Icon as icon, Menu as menu, MenuItem as item
 from win32gui import GetForegroundWindow
@@ -19,7 +20,7 @@ class PyStrayWorker:
 
     def end_program(self):
         self.icon.stop()
-        sys.exit()
+        os._exit(1)
 
 
 def on_selecting_area():
