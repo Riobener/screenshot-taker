@@ -1,6 +1,3 @@
-fullscreen_hotkey: ctrl+f11
-selecting_area_hotkey: ctrl+f12
-foreground_screen_hotkey: ctrl+f10
 directory_path: desktop
 
 # Examples for directory_path values:
