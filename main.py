@@ -50,8 +50,8 @@ HOTKEYS = [
 
 
 async def main():
-    asyncio.ensure_future(register_and_listen_hotkeys(HOTKEYS))
     PyStrayWorker()
+    asyncio.ensure_future(register_and_listen_hotkeys(HOTKEYS))
 
 
 if __name__ == "__main__":
