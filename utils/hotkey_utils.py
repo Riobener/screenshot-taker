@@ -4,7 +4,7 @@ from ctypes import wintypes
 import win32con
 
 
-async def register_and_listen_hotkeys(HOTKEYS):
+def register_and_listen_hotkeys(HOTKEYS):
     for i, h in enumerate(HOTKEYS):
         vk, modifiers = h["keys"]
         print("Registering id", i, "for key", vk)
