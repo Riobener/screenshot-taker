@@ -44,14 +44,14 @@ def on_foreground_window():
 
 HOTKEYS = [
     {"keys": (win32con.VK_F12, win32con.MOD_CONTROL), "command": on_selecting_area},
-    {"keys": (win32con.VK_F11, win32con.MOD_CONTROL), "command": on_fullscreen},
-    {"keys": (win32con.VK_F10, win32con.MOD_CONTROL), "command": on_foreground_window},
+    {"keys": (win32con.VK_F11, win32con.MOD_CONTROL), "command": on_foreground_window},
+    {"keys": (win32con.VK_F10, win32con.MOD_CONTROL), "command": on_fullscreen},
 ]
 
 
 async def main():
-    asyncio.ensure_future(register_and_listen_hotkeys(HOTKEYS))
     PyStrayWorker()
+    asyncio.ensure_future(register_and_listen_hotkeys(HOTKEYS))
 
 if __name__ == "__main__":
     asyncio.run(main())
